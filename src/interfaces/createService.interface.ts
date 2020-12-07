@@ -11,7 +11,7 @@ export class CreateServiceDto {
 
     @IsNumber({ allowInfinity: false, allowNaN: false, maxDecimalPlaces: 0 })
     @IsNotEmpty({message:'Interval is mandatory'})
-    @Min(0,{message:'PING Interval cannot be less than 0sec'})
+    @Min(5,{message:'PING Interval cannot be less than 5sec'})
     @Max(500,{message:'PING Interval cannot be greater than 500sec'})
     interval: number;
 }

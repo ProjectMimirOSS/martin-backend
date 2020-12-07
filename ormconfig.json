@@ -4,7 +4,7 @@
     "port": 5432,
     "username": "mimir",
     "password": "50033",
-    "database": "testing",
+    "database": "mimir",
     "entities": ["dist/**/*.entity{.ts,.js}"],
     "synchronize": true
   }

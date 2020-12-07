@@ -1,7 +1,7 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { BaseEntity, Column, CreateDateColumn, Entity, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity()
-export class Service {
+export class Service extends BaseEntity {
 
     @PrimaryGeneratedColumn("uuid")
     serviceId: string;
@@ -15,12 +15,12 @@ export class Service {
     @Column({ type: 'int2' })
     interval: number;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamp', nullable: true })
     lastChecked: Date;
 
-    @CreateDateColumn({type: "timestamp"})
+    @CreateDateColumn({ type: "timestamp", nullable: true })
     createdAt: Date;
 
-    @UpdateDateColumn({type: "timestamp"})
+    @UpdateDateColumn({ type: "timestamp", nullable: true })
     updatedAt: Date;
 }
