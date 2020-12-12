@@ -67,13 +67,12 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
         if (!cron) return;
 
-        if (service.active === false) {
-            cron.stop();
-        } else {
-            const minutes = Math.floor(service.interval / 60), seconds = service.interval % 60;
-            const newTime = new CronTime(`${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' : '*/' + minutes} * * * *`)
-            cron.setTime(newTime);
-        }
+        cron.stop();
+        const minutes = Math.floor(service.interval / 60), seconds = service.interval % 60;
+        const newTime = new CronTime(`${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' : '*/' + minutes} * * * *`)
+        cron.setTime(newTime);
+        cron.start();
+
     }
 
     executeCron(serviceId: string) {
@@ -174,7 +173,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_JUDY;
                 const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
-                this.gateway.publish('service_update', { ...event, serviceId,nextExecutionAt });
+                this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 if (recentCritical)
                     this.webHook.notify(event);
@@ -193,9 +192,9 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                         const info = await this.downTime.getStatsForSubService(iterator.serviceId, '*');
                         let lastDownAt = info?.lastDownAt?.toLocaleString();
                         let lastUpAt = info?.lastUpAt?.toLocaleString();
-        
+
                         const resp = await this.getCronInfo(iterator.serviceId);
-                        list.push({ ...iterator, ...resp,lastDownAt,lastUpAt });
+                        list.push({ ...iterator, ...resp, lastDownAt, lastUpAt });
                     }
                     this.gateway.publish('services_list', list);
                 })
