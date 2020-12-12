@@ -11,7 +11,7 @@ import { WebHookService } from "./services/webhook.service";
 
 @Injectable()
 export class AppRespository {
-
+   
 
     constructor(
         private readonly serviceModal: ServiceModel,
@@ -44,6 +44,11 @@ export class AppRespository {
             }
         })
     }
+
+    servicesCount() {
+        return this.serviceModal.getTotalServicesCount();
+    }
+
 
     listServices() {
         return this.cronService.listCronInfo();

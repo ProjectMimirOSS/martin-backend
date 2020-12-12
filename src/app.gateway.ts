@@ -7,6 +7,7 @@ import { CreateWebHookDto, UpdateWebHookDto } from "./interfaces/webhook.interfa
 
 @WebSocketGateway(7777, { transports: ['websocket'] })
 export class AppGateway implements OnApplicationShutdown {
+    private readonly startTime = new Date();
 
     @WebSocketServer()
     private readonly server: Server;
@@ -19,6 +20,14 @@ export class AppGateway implements OnApplicationShutdown {
 
     onApplicationShutdown(signal?: string) {
         this.server.emit('connection_closed');
+    }
+
+    @SubscribeMessage('init')
+    init() {
+        return {
+            startedAt: this.startTime,
+            servicesCount: this.appRepo.servicesCount()
+        }
     }
 
     @SubscribeMessage('create_new_service')
@@ -52,7 +61,7 @@ export class AppGateway implements OnApplicationShutdown {
     }
 
     @SubscribeMessage('list_webhooks')
-    listWebHooks(){
+    listWebHooks() {
         return this.appRepo.listWebHook();
     }
 

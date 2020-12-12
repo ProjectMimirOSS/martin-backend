@@ -3,7 +3,7 @@ export interface IServiceMessage<T> {
     lastUpAt: string;
     lastDownAt: string;
     serviceName: string;
-    updatedOn: string;
+    updatedAt: string;
     subServices: IPongDto;
     pingTAT: number;
     serviceId?: string;

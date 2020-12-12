@@ -91,7 +91,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_HOLT;
-                event.updatedOn = start.toLocaleString();
+                event.updatedAt = start.toLocaleString();
 
 
 
@@ -190,8 +190,12 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 this.services.fetchServicesList(currentPage, limit).then(async (_services) => {
                     const list = [];
                     for (const iterator of _services) {
+                        const info = await this.downTime.getStatsForSubService(iterator.serviceId, '*');
+                        let lastDownAt = info?.lastDownAt?.toLocaleString();
+                        let lastUpAt = info?.lastUpAt?.toLocaleString();
+        
                         const resp = await this.getCronInfo(iterator.serviceId);
-                        list.push({ ...iterator, ...resp });
+                        list.push({ ...iterator, ...resp,lastDownAt,lastUpAt });
                     }
                     this.gateway.publish('services_list', list);
                 })
