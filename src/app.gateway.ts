@@ -57,6 +57,6 @@ export class AppGateway implements OnApplicationShutdown {
     }
 
     publish(event_name: string, event: any) {
-        this.server.emit('service_updated', event);
+        this.server.emit(event_name, event);
     }
 }
