@@ -9,7 +9,7 @@ export class WebHook {
     url: string;
 
     @Column({ type: 'bool', default: true })
-    active: true;
+    active: boolean;
 
     @CreateDateColumn({ type: "timestamp", nullable: true })
     createdAt: Date;

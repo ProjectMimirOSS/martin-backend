@@ -1,8 +1,8 @@
 import { forwardRef, HttpService, Inject, Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
 import { CronExpression, SchedulerRegistry } from "@nestjs/schedule";
-import { CreateServiceDto } from "../interfaces/createService.interface";
-import { CronJob } from 'cron';
-import { Service } from "../interfaces/service.entity";
+import { CreateServiceDto } from "../interfaces/service.interface";
+import { CronJob, CronTime } from 'cron';
+import { Service } from "../entities/service.entity";
 import { AppGateway } from "../app.gateway";
 import { take } from 'rxjs/operators';
 import { IEventType, IPongDto, IServiceMessage } from "../interfaces/serviceResponse.interface";
@@ -12,6 +12,7 @@ import { WebHookService } from "./webhook.service";
 
 @Injectable()
 export class CronService implements OnApplicationBootstrap, OnApplicationShutdown {
+
     constructor(
         private readonly scheduler: SchedulerRegistry,
         private readonly services: ServiceModel,
@@ -21,6 +22,8 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
         private readonly downTime: DowntimeModel,
         private readonly webHook: WebHookService
     ) { }
+
+    private readonly serviceSubServiceMap = new Map<string, string[]>();
 
     onApplicationShutdown(signal?: string) {
         this.scheduler.getCronJobs().forEach((cron) => {
@@ -58,11 +61,27 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
     }
 
+    updateCron(service: Service) {
+
+        const cron = this.scheduler.getCronJob(service.serviceId);
+
+        if (!cron) return;
+
+        if (service.active === false) {
+            cron.stop();
+        } else {
+            const minutes = Math.floor(service.interval / 60), seconds = service.interval % 60;
+            const newTime = new CronTime(`${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' : '*/' + minutes} * * * *`)
+            cron.setTime(newTime);
+        }
+    }
+
     executeCron(serviceId: string) {
-        return this.services.fetchServiceById(serviceId).then((service) => {
-            if (serviceId === 'a4313ae5-cd84-4bc4-9e83-9aa58b78ea3d') return;
+        return this.services.fetchServiceById(serviceId).then(async (service) => {
             Logger.log(`Cron ${serviceId} successfully ran!`);
             const startTime = Date.now();
+            const start = new Date();
+            await this.services.updateService(serviceId, { lastChecked: new Date() });
             this.http.get<IPongDto>(service.url).pipe(take(1)).subscribe(async (result) => {
                 const tat = Date.now() - startTime;
 
@@ -72,6 +91,8 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_HOLT;
+                event.updatedOn = start.toLocaleString();
+
 
 
                 const totalItems = Object.keys(pong_dto).length;
@@ -102,7 +123,6 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 } else {
                     for (const item of itemsDown) {
                         const [name] = item;
-                        console.log(name);
 
                         const entry = await this.downTime.recordDowntime(serviceId, name);
 
@@ -111,7 +131,6 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                     for (const item of itemsUp) {
                         const [name] = item;
-                        console.log(name);
 
                         const entry = await this.downTime.recordUptime(serviceId, name);
 
@@ -123,8 +142,10 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                 event.subServices = {};
                 const cron = this.scheduler.getCronJob(serviceId);
+                const subServices = [];
                 for (const iterator in pong_dto) {
-                    console.log('iterator');
+
+                    subServices.push(iterator);
 
                     const item = pong_dto[iterator];
                     const info = await this.downTime.getStatsForSubService(serviceId, iterator);
@@ -132,7 +153,12 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                 }
 
-                this.gateway.publish(event);
+                const info = await this.downTime.getStatsForSubService(serviceId, '*');
+                event.lastDownAt = info?.lastDownAt?.toLocaleString();
+                event.lastUpAt = info?.lastUpAt?.toLocaleString();
+                this.serviceSubServiceMap.set(serviceId, subServices);
+
+                this.gateway.publish('service_update', event);
                 if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0 || recentlyUp.length > 0)
                     this.webHook.notify(event);
 
@@ -144,13 +170,44 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_JUDY;
-                this.gateway.publish(event);
-
+                this.gateway.publish('service_update', event);
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 if (recentCritical)
                     this.webHook.notify(event);
             })
         })
+    }
+
+    listCronInfo() {
+        this.services.getTotalServicesCount().then((totalCount) => {
+            let currentPage = 1, limit = 10, maxPages = Math.ceil(totalCount / limit);
+
+            while (currentPage <= maxPages) {
+                this.services.fetchServicesList(currentPage, limit).then(async (_services) => {
+                    const list = [];
+                    for (const iterator of _services) {
+                        const resp = await this.getCronInfo(iterator.serviceId);
+                        list.push({ ...iterator, ...resp });
+                    }
+                    this.gateway.publish('services_list', list);
+                })
+                currentPage++;
+            }
+        })
+    }
+
+    async getCronInfo(serviceId: string) {
+        const subServices = this.serviceSubServiceMap.get(serviceId);
+        const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
+        const subServicesInfo = {};
+        for (const iterator of subServices) {
+            const item = await this.downTime.getStatsForSubService(serviceId, iterator);
+            subServicesInfo[iterator] = { status: (item.lastUpAt?.getTime() ?? -1) > (item.lastDownAt?.getTime() ?? 0) ? 'UP' : 'DOWN', lastUpAt: item.lastUpAt?.toLocaleString(), lastDownAt: item.lastDownAt?.toLocaleString() };
+        }
+        return {
+            nextExecutionAt,
+            subServices: subServicesInfo
+        }
     }
 
 }

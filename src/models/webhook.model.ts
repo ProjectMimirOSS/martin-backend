@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { WebHook } from "../interfaces/webhook.entity";
+import { WebHook } from "../entities/webhook.entity";
 
 @Injectable()
 export class WebHookModel {
@@ -13,11 +13,15 @@ export class WebHookModel {
     }
 
     fetchWebHooksList(page = 1, limit = 10) {
-        return this.webHookRepo.find({ skip: (page - 1) * limit, take: limit });
+        return this.webHookRepo.find({ skip: (page - 1) * limit, take: limit, order: { createdAt: 'ASC', active: 'ASC' } });
     }
 
     getTotalWebHooksCount() {
         return this.webHookRepo.count();
+    }
+
+    updateWebHook(webhookId: string, webHook: Partial<Omit<WebHook, 'id'>>) {
+        return this.webHookRepo.update({ id: webhookId }, webHook);
     }
 
 }

@@ -6,13 +6,13 @@ import { AppController } from './app.controller';
 import { AppGateway } from './app.gateway';
 import { AppService } from './app.service';
 import { CronService } from './services/cron.service';
-import { Service } from './interfaces/service.entity';
+import { Service } from './entities/service.entity';
 import { ServiceModel } from './models/service.model';
 import { AppRespository } from './app.repository';
 import { DowntimeModel } from './models/downtime.model';
-import { WebHook } from './interfaces/webhook.entity';
+import { WebHook } from './entities/webhook.entity';
 import { WebHookModel } from './models/webhook.model';
-import { ServiceDowntime } from './interfaces/serviceDowntime.entity';
+import { ServiceDowntime } from './entities/serviceDowntime.entity';
 import { WebHookService } from './services/webhook.service';
 
 @Module({

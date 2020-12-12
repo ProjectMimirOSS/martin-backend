@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { In, IsNull, Not, Repository } from "typeorm";
-import { ServiceDowntime } from "../interfaces/serviceDowntime.entity";
+import { ServiceDowntime } from "../entities/serviceDowntime.entity";
 
 @Injectable()
 export class DowntimeModel {

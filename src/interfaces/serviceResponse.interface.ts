@@ -1,6 +1,7 @@
 export interface IServiceMessage<T> {
     status: IEventType;
-    upTime: number;
+    lastUpAt: string;
+    lastDownAt:string;
     serviceName: string;
     updatedOn: string;
     subServices: IPongDto;

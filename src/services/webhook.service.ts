@@ -1,14 +1,42 @@
-import { HttpService, Injectable } from "@nestjs/common";
+import { forwardRef, HttpService, Inject, Injectable } from "@nestjs/common";
+import { AppGateway } from "../app.gateway";
+import { WebHook } from "../entities/webhook.entity";
 import { IEventType, IPongDto, IServiceMessage } from "../interfaces/serviceResponse.interface";
+import { CreateWebHookDto, UpdateWebHookDto } from "../interfaces/webhook.interface";
 import { WebHookModel } from "../models/webhook.model";
 
 @Injectable()
 export class WebHookService {
 
+
     constructor(
         private readonly http: HttpService,
-        private readonly webHook: WebHookModel
+        private readonly webHook: WebHookModel,
+        @Inject(forwardRef(() => AppGateway))
+        private readonly gateway: AppGateway,
     ) { }
+
+
+    createWebHook(body: CreateWebHookDto) {
+        const new_webhook = new WebHook();
+        new_webhook.url = body.url;
+        return this.webHook.createWebHook(new_webhook);
+    }
+
+    updateWebHook(body: UpdateWebHookDto) {
+        const bodyCopy = { ...body };
+        delete bodyCopy.id;
+        return this.webHook.updateWebHook(body.id, bodyCopy);
+    }
+
+    listWebHooks() {
+        return this.webHook.getTotalWebHooksCount().then((totalCount) => {
+            console.log('total count', totalCount);
+
+            return this.webHook.fetchWebHooksList(1, totalCount);
+
+        })
+    }
 
 
     notify(event: IServiceMessage<IPongDto>) {
