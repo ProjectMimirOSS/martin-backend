@@ -50,8 +50,9 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
     createCron(service: Service) {
         const minutes = Math.floor(service.interval / 60), seconds = service.interval % 60;
-        Logger.log(`Cron ${service.serviceId} scheduled at ${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' :'*/'+ minutes} * * * *`)
+        Logger.log(`Cron ${service.serviceId} scheduled at ${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' : '*/' + minutes} * * * *`)
         const job = new CronJob(`${seconds === 0 ? '*' : '*/' + seconds} ${minutes === 0 ? '*' : '*/' + minutes} * * * *`, () => { this.executeCron(service.serviceId) });
+        this.scheduler.addCronJob(service.serviceId, job);
         job.start();
 
     }
@@ -66,10 +67,10 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 const { data: pong_dto } = result;
 
                 const event = {} as IServiceMessage<IPongDto>;
-                event.execution_time = tat;
-                event.service_id = service.serviceId;
-                event.event_response = pong_dto;
-                event.event_type = IEventType.HEALTHY_PING;
+                event.pingTAT = tat;
+                event.serviceName = service.serviceName;
+                event.status = IEventType.CODE_HOLT;
+
 
                 const totalItems = Object.keys(pong_dto).length;
 
@@ -78,19 +79,19 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
 
                 if (itemsDown.length > 0 && itemsDown.length === totalItems) {
-                    event.event_type = IEventType.SUPER_CRITICAL;
+                    event.status = IEventType.CODE_GINA;
+                } else if (itemsDown.length > 0 && itemsDown.length > Math.ceil(totalItems / 2)) {
+                    event.status = IEventType.CODE_JAKE;
+                } else if (itemsDown.length > 0 && itemsDown.length <= Math.ceil(totalItems / 2)) {
+                    event.status = IEventType.CODE_ROSA;
                 }
 
-                if (itemsDown.length > 0 && itemsDown.length < totalItems) {
-                    event.event_type = IEventType.SUB_CRITICAL;
-                }
 
-                this.gateway.publish(event);
 
-                const recentlyDown = [];
+                const recentlyDown = [], recentlyUp = [];
                 let recentCritical = null, recentRecovery = null;
 
-                if (event.event_type === IEventType.SUPER_CRITICAL) {
+                if (event.status === IEventType.CODE_GINA) {
                     recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 } else {
                     for (const item of itemsDown) {
@@ -102,31 +103,40 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                     for (const item of itemsUp) {
                         const [name] = item;
-                        await this.downTime.recordUptime(serviceId, name);
+                        const entry = await this.downTime.recordUptime(serviceId, name);
+
+                        if (entry?.affected > 0) recentlyUp.push(name);
                     }
 
                     recentRecovery = await this.downTime.recordUptime(serviceId, '*');
                 }
 
-                if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0) {
-                    await this.webHook.notify(serviceId, recentlyDown, event.event_type);
+                event.subServices = {};
+                const cron = this.scheduler.getCronJob(serviceId);
+                for (const iterator in pong_dto) {
+                    const item = pong_dto[iterator];
+                    const info = await this.downTime.getStatsForSubService(serviceId, iterator);
+                    event.subServices[iterator] = { ...item, lastDownAt: info.lastDownAt?.toLocaleString(), lastUpAt: item.status === 'UP' ? cron.lastDate().toLocaleString() : info.lastUpAt?.toLocaleString() };
+
                 }
 
+                this.gateway.publish(event);
+                if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0 || recentlyUp.length > 0)
+                    this.webHook.notify(event);
 
 
             }, async (err) => {
                 const tat = Date.now() - startTime;
 
                 const event = {} as IServiceMessage<IPongDto>;
-                event.execution_time = tat;
-                event.service_id = service.serviceId;
-                event.event_response = err;
-                event.event_type = IEventType.SUPER_CRITICAL;
+                event.pingTAT = tat;
+                event.serviceName = service.serviceName;
+                event.status = IEventType.CODE_JUDY;
                 this.gateway.publish(event);
 
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 if (recentCritical)
-                    this.webHook.notify(serviceId, [], event.event_type);
+                    this.webHook.notify(event);
             })
         })
     }
