@@ -1,11 +1,12 @@
 export interface IServiceMessage<T> {
     status: IEventType;
     lastUpAt: string;
-    lastDownAt:string;
+    lastDownAt: string;
     serviceName: string;
     updatedOn: string;
     subServices: IPongDto;
     pingTAT: number;
+    serviceId?: string;
 }
 
 export enum IEventType {
