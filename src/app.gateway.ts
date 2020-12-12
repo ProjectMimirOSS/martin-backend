@@ -33,13 +33,17 @@ export class AppGateway implements OnApplicationShutdown {
     @SubscribeMessage('create_new_service')
     @UsePipes(new ValidationPipe())
     createNewService(@MessageBody() body: CreateServiceDto) {
-        return this.appRepo.createService(body);
+        return this.appRepo.createService(body).then(() => {
+            this.listServices();
+        })
     }
 
     @SubscribeMessage('update_service')
     @UsePipes(new ValidationPipe())
     updateService(@MessageBody() body: UpdateServiceDto) {
-        return this.appRepo.updateService(body);
+        return this.appRepo.updateService(body).then(() => {
+            this.listServices();
+        })
     }
 
     @SubscribeMessage('list_services')
@@ -51,13 +55,17 @@ export class AppGateway implements OnApplicationShutdown {
     @SubscribeMessage('create_new_webhook')
     @UsePipes(new ValidationPipe())
     createWebHook(@MessageBody() body: CreateWebHookDto) {
-        return this.appRepo.createWebHook(body);
+        return this.appRepo.createWebHook(body).then(() => {
+            this.listWebHooks();
+        })
     }
 
     @SubscribeMessage('update_webhook')
     @UsePipes(new ValidationPipe())
     updateWebHook(@MessageBody() body: UpdateWebHookDto) {
-        return this.appRepo.updateWebHook(body);
+        return this.appRepo.updateWebHook(body).then(() => {
+            this.listWebHooks();
+        })
     }
 
     @SubscribeMessage('list_webhooks')
