@@ -156,9 +156,12 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 const info = await this.downTime.getStatsForSubService(serviceId, '*');
                 event.lastDownAt = info?.lastDownAt?.toLocaleString();
                 event.lastUpAt = info?.lastUpAt?.toLocaleString();
+
+                const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
+
                 this.serviceSubServiceMap.set(serviceId, subServices);
 
-                this.gateway.publish('service_update', { ...event, serviceId });
+                this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
                 if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0 || recentlyUp.length > 0)
                     this.webHook.notify(event);
 
@@ -170,7 +173,8 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_JUDY;
-                this.gateway.publish('service_update', { ...event, serviceId });
+                const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
+                this.gateway.publish('service_update', { ...event, serviceId,nextExecutionAt });
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 if (recentCritical)
                     this.webHook.notify(event);
