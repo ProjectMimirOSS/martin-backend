@@ -23,4 +23,7 @@ export class Service extends BaseEntity {
 
     @UpdateDateColumn({ type: "timestamp", nullable: true })
     updatedAt: Date;
+
+    @Column({ type: 'bool', default: true })
+    active: boolean;
 }

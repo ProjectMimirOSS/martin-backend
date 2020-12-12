@@ -39,7 +39,8 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
             while (currentPage <= maxPages) {
                 this.services.fetchServicesList(currentPage, limit).then((_services) => {
                     _services.forEach((service) => {
-                        this.createCron(service);
+                        if (service.active)
+                            this.createCron(service);
                     })
                 })
                 currentPage++;
@@ -59,6 +60,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
     executeCron(serviceId: string) {
         return this.services.fetchServiceById(serviceId).then((service) => {
+            if (serviceId === 'a4313ae5-cd84-4bc4-9e83-9aa58b78ea3d') return;
             Logger.log(`Cron ${serviceId} successfully ran!`);
             const startTime = Date.now();
             this.http.get<IPongDto>(service.url).pipe(take(1)).subscribe(async (result) => {
@@ -76,6 +78,9 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                 const itemsDown = Object.entries(pong_dto).filter((item) => item[1].status === 'DOWN');
                 const itemsUp = Object.entries(pong_dto).filter((item) => item[1].status === 'UP');
+                console.log('itemdown', itemsDown);
+                console.log('itemsup', itemsUp);
+
 
 
                 if (itemsDown.length > 0 && itemsDown.length === totalItems) {
@@ -91,11 +96,14 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 const recentlyDown = [], recentlyUp = [];
                 let recentCritical = null, recentRecovery = null;
 
-                if (event.status === IEventType.CODE_GINA) {
+                if (event.status == IEventType.CODE_GINA) {
+                    console.log('CODE_GINA');
                     recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 } else {
                     for (const item of itemsDown) {
                         const [name] = item;
+                        console.log(name);
+
                         const entry = await this.downTime.recordDowntime(serviceId, name);
 
                         if (entry) recentlyDown.push(name);
@@ -103,9 +111,11 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
 
                     for (const item of itemsUp) {
                         const [name] = item;
+                        console.log(name);
+
                         const entry = await this.downTime.recordUptime(serviceId, name);
 
-                        if (entry?.affected > 0) recentlyUp.push(name);
+                        if (entry) recentlyUp.push(name);
                     }
 
                     recentRecovery = await this.downTime.recordUptime(serviceId, '*');
@@ -114,9 +124,11 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.subServices = {};
                 const cron = this.scheduler.getCronJob(serviceId);
                 for (const iterator in pong_dto) {
+                    console.log('iterator');
+
                     const item = pong_dto[iterator];
                     const info = await this.downTime.getStatsForSubService(serviceId, iterator);
-                    event.subServices[iterator] = { ...item, lastDownAt: info.lastDownAt?.toLocaleString(), lastUpAt: item.status === 'UP' ? cron.lastDate().toLocaleString() : info.lastUpAt?.toLocaleString() };
+                    event.subServices[iterator] = { ...item, lastDownAt: info.lastDownAt?.toLocaleString(), lastUpAt: info.lastUpAt?.toLocaleString() };
 
                 }
 

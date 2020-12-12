@@ -21,14 +21,12 @@ export class WebHookService {
             while (currentPage <= maxPages) {
                 this.webHook.fetchWebHooksList(currentPage, limit).then((_webhooks) => {
                     _webhooks.forEach((webhook) => {
-                        console.log(webhook);
-
-
-                        try {
-                            this.http.post(webhook.url, event).toPromise()
-                        } catch (error) {
-                            console.error(error);
-                        }
+                        if (webhook.active)
+                            try {
+                                this.http.post(webhook.url, event).toPromise()
+                            } catch (error) {
+                                console.error(error);
+                            }
                     })
                 })
                 currentPage++;
