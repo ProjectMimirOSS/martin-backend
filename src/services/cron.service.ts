@@ -24,11 +24,16 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
     ) { }
 
     private readonly serviceSubServiceMap = new Map<string, string[]>();
+    private readonly serviceStatusMap = new Map<string, string>();
 
     onApplicationShutdown(signal?: string) {
         this.scheduler.getCronJobs().forEach((cron) => {
             cron.stop();
-        })
+        });
+        for (const iterator of this.serviceStatusMap.entries()) {
+            const [key, value] = iterator;
+            this.services.updateService(key, { status: value });
+        }
     }
 
     onApplicationBootstrap() {
@@ -42,8 +47,10 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
             while (currentPage <= maxPages) {
                 this.services.fetchServicesList(currentPage, limit).then((_services) => {
                     _services.forEach((service) => {
-                        if (service.active)
+                        if (service.active) {
                             this.createCron(service);
+                            this.executeCron(service.serviceId);
+                        }
                     })
                 })
                 currentPage++;
@@ -159,6 +166,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
 
                 this.serviceSubServiceMap.set(serviceId, subServices);
+                this.serviceStatusMap.set(serviceId, event.status);
 
                 this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
                 if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0 || recentlyUp.length > 0)
@@ -172,6 +180,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_JUDY;
+                this.serviceStatusMap.set(serviceId, event.status);
                 const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
                 this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
@@ -196,6 +205,8 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                         const resp = await this.getCronInfo(iterator.serviceId);
                         list.push({ ...iterator, ...resp, lastDownAt, lastUpAt });
                     }
+                    console.log('publishing');
+
                     this.gateway.publish('services_list', list);
                 })
                 currentPage++;
@@ -207,13 +218,15 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
         const subServices = this.serviceSubServiceMap.get(serviceId);
         const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
         const subServicesInfo = {};
-        for (const iterator of subServices) {
-            const item = await this.downTime.getStatsForSubService(serviceId, iterator);
-            subServicesInfo[iterator] = { status: (item.lastUpAt?.getTime() ?? -1) > (item.lastDownAt?.getTime() ?? 0) ? 'UP' : 'DOWN', lastUpAt: item.lastUpAt?.toLocaleString(), lastDownAt: item.lastDownAt?.toLocaleString() };
-        }
+        if (subServices)
+            for (const iterator of subServices) {
+                const item = await this.downTime.getStatsForSubService(serviceId, iterator);
+                subServicesInfo[iterator] = { status: (item.lastUpAt?.getTime() ?? -1) > (item.lastDownAt?.getTime() ?? 0) ? 'UP' : 'DOWN', lastUpAt: item.lastUpAt?.toLocaleString(), lastDownAt: item.lastDownAt?.toLocaleString() };
+            }
         return {
             nextExecutionAt,
-            subServices: subServicesInfo
+            subServices: subServicesInfo,
+            stautus: this.serviceStatusMap.get(serviceId)
         }
     }
 

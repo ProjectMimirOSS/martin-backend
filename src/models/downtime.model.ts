@@ -13,9 +13,9 @@ export class DowntimeModel {
         Logger.log(`Recording downtime for ${serviceId} ${subService}`);
         const val = await this.getStatsForSubService(serviceId, subService)
         const { lastDownAt, lastUpAt } = val;
-        console.log('lastDown', lastDownAt, lastUpAt?.getTime());
-        console.log('lastUp', lastUpAt, lastUpAt?.getTime());
-        console.log('\n\n\n');
+        // console.log('lastDown', lastDownAt, lastUpAt?.getTime());
+        // console.log('lastUp', lastUpAt, lastUpAt?.getTime());
+        // console.log('\n\n\n');
 
 
         if (lastDownAt) {
@@ -39,9 +39,9 @@ export class DowntimeModel {
         const { lastDownAt, lastUpAt } = val;
 
         Logger.log(`Recording uptime for ${serviceId} ${subService}`);
-        console.log('lastDown', lastDownAt, lastUpAt?.getTime());
-        console.log('lastUp', lastUpAt, lastUpAt?.getTime());
-        console.log('\n\n\n');
+        // console.log('lastDown', lastDownAt, lastUpAt?.getTime());
+        // console.log('lastUp', lastUpAt, lastUpAt?.getTime());
+        // console.log('\n\n\n');
 
 
         if (lastUpAt) {
@@ -87,10 +87,10 @@ export class DowntimeModel {
         const subServiceDown = await this.downTimeRepo.findOne({ where: { serviceId, subService, downAt: Not(IsNull()) }, order: { downAt: 'DESC' } });
         const systemDown = await this.downTimeRepo.findOne({ where: { serviceId, subService: '*', downAt: Not(IsNull()) }, order: { downAt: 'DESC' } });
 
-        console.log('service', serviceId, 'subservice', subService);
-        console.log('subserviceDown', subServiceDown);
-        console.log('systemDown', systemDown);
-        console.log('\n\n\n');
+        // console.log('service', serviceId, 'subservice', subService);
+        // console.log('subserviceDown', subServiceDown);
+        // console.log('systemDown', systemDown);
+        // console.log('\n\n\n');
 
         if (subServiceDown?.downAt) {
             if (systemDown?.downAt) {
@@ -110,9 +110,9 @@ export class DowntimeModel {
     async getUpTimeForSubService(serviceId: string, subService: string) {
         const subSystemUp = await this.downTimeRepo.findOne({ where: { serviceId, subService, upAt: Not(IsNull()) }, order: { upAt: 'DESC' } });
 
-        console.log('service', serviceId, 'subservice', subService);
-        console.log('subserviceUp', subSystemUp);
-        console.log('\n\n\n');
+        // console.log('service', serviceId, 'subservice', subService);
+        // console.log('subserviceUp', subSystemUp);
+        // console.log('\n\n\n');
 
         return subSystemUp?.upAt;
     }

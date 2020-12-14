@@ -5,7 +5,7 @@ import { CreateServiceDto, UpdateServiceDto } from "./interfaces/service.interfa
 import { Server } from 'socket.io';
 import { CreateWebHookDto, UpdateWebHookDto } from "./interfaces/webhook.interface";
 
-@WebSocketGateway(7777, { transports: ['websocket'] })
+@WebSocketGateway(7777, { transports: ['websocket','polling'] })
 export class AppGateway implements OnApplicationShutdown {
     private readonly startTime = new Date();
 
@@ -42,12 +42,16 @@ export class AppGateway implements OnApplicationShutdown {
     @UsePipes(new ValidationPipe())
     updateService(@MessageBody() body: UpdateServiceDto) {
         return this.appRepo.updateService(body).then(() => {
+            console.log('updated');
+            
             this.listServices();
         })
     }
 
     @SubscribeMessage('list_services')
     listServices() {
+        console.log('listing');
+        
         return this.appRepo.listServices();
     }
 

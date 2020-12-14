@@ -26,4 +26,7 @@ export class Service extends BaseEntity {
 
     @Column({ type: 'bool', default: true })
     active: boolean;
+
+    @Column({ type: 'varchar', length: 20, nullable: true })
+    status: string;
 }
