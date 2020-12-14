@@ -203,7 +203,9 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                         let lastUpAt = info?.lastUpAt?.toLocaleString();
 
                         const resp = await this.getCronInfo(iterator.serviceId);
-                        list.push({ ...iterator, ...resp, lastDownAt, lastUpAt });
+                        const obj = { ...iterator, ...resp, lastDownAt, lastUpAt };
+                        obj.status = resp.stautus ? resp.stautus : iterator.status;
+                        list.push();
                     }
                     console.log('publishing');
 
@@ -226,7 +228,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
         return {
             nextExecutionAt,
             subServices: subServicesInfo,
-            stautus: this.serviceStatusMap.get(serviceId)
+            stautus: this.serviceStatusMap.has(serviceId) ? this.serviceStatusMap.get(serviceId) : null
         }
     }
 
