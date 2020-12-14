@@ -5,7 +5,7 @@ import { CronJob, CronTime } from 'cron';
 import { Service } from "../entities/service.entity";
 import { AppGateway } from "../app.gateway";
 import { take } from 'rxjs/operators';
-import { IEventType, IPongDto, IServiceMessage } from "../interfaces/serviceResponse.interface";
+import { IEventType, IPongDto, IPongResponseItem, IServiceMessage } from "../interfaces/serviceResponse.interface";
 import { DowntimeModel } from "../models/downtime.model";
 import { ServiceModel } from "../models/service.model";
 import { WebHookService } from "./webhook.service";
@@ -91,9 +91,19 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
             this.http.get<IPongDto>(service.url).pipe(take(1)).subscribe(async (result) => {
                 const tat = Date.now() - startTime;
 
-                const { data: pong_dto } = result;
+                const { data } = result;
 
-                const event = {} as IServiceMessage<IPongDto>;
+                const pong_dto = new IPongDto();
+
+                for (const iterator in data) {
+                    const o = Object.assign(IPongResponseItem, data[iterator]);
+                    if (o.status) {
+                        pong_dto[iterator] = o;
+                    }
+                }
+
+
+                const event = new IServiceMessage<IPongDto>();
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_HOLT;
@@ -146,7 +156,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                     recentRecovery = await this.downTime.recordUptime(serviceId, '*');
                 }
 
-                event.subServices = {};
+                event.subServices = new IPongDto();
                 const cron = this.scheduler.getCronJob(serviceId);
                 const subServices = [];
                 for (const iterator in pong_dto) {
@@ -176,7 +186,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
             }, async (err) => {
                 const tat = Date.now() - startTime;
 
-                const event = {} as IServiceMessage<IPongDto>;
+                const event = new IServiceMessage<IPongDto>();
                 event.pingTAT = tat;
                 event.serviceName = service.serviceName;
                 event.status = IEventType.CODE_JUDY;

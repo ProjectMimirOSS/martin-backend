@@ -1,4 +1,4 @@
-export interface IServiceMessage<T> {
+export class IServiceMessage<T> {
     status: IEventType;
     lastUpAt: string;
     lastDownAt: string;
@@ -22,11 +22,11 @@ export enum IEventType {
     CODE_HOLT = 'CODE_HOLT'
 }
 
-export interface IPongDto {
+export class IPongDto {
     [x: string]: IPongResponseItem;
 }
 
-export interface IPongResponseItem {
+export class IPongResponseItem {
     status: 'UP' | 'DOWN';
     message?: string;
     lastDownAt?: string;
