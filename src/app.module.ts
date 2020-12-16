@@ -21,6 +21,6 @@ import { WebHookService } from './services/webhook.service';
     ScheduleModule.forRoot(), HttpModule,
   ],
   providers: [
-    GatewayHelperService, AppService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
+    GatewayHelperService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
 })
 export class AppModule { }
