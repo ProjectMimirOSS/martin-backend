@@ -3,9 +3,7 @@ import { HttpModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
 import { AppGateway } from './app.gateway';
-import { AppService } from './app.service';
 import { CronService } from './services/cron.service';
 import { Service } from './entities/service.entity';
 import { ServiceModel } from './models/service.model';
@@ -22,8 +20,7 @@ import { WebHookService } from './services/webhook.service';
     TypeOrmModule.forRoot(), TypeOrmModule.forFeature([Service, WebHook, ServiceDowntime]),
     ScheduleModule.forRoot(), HttpModule,
   ],
-  controllers: [AppController],
   providers: [
-        GatewayHelperService, AppService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
+    GatewayHelperService, AppService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
 })
 export class AppModule { }
