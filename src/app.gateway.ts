@@ -1,21 +1,29 @@
-import { Logger, OnApplicationShutdown, UsePipes, ValidationPipe } from "@nestjs/common";
-import { MessageBody, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { Logger, OnApplicationBootstrap, OnApplicationShutdown, UsePipes, ValidationPipe } from "@nestjs/common";
+import { MessageBody, SubscribeMessage, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { AppRespository } from "./app.repository";
 import { CreateServiceDto, UpdateServiceDto } from "./interfaces/service.interface";
 import { Server } from 'socket.io';
 import { CreateWebHookDto, UpdateWebHookDto } from "./interfaces/webhook.interface";
+import { GatewayHelperService } from "./services/gatewayhelper.service";
 
-@WebSocketGateway(7777, { transports: ['websocket','polling'] })
-export class AppGateway implements OnApplicationShutdown {
+@WebSocketGateway(7777, { transports: ['websocket', 'polling'] })
+export class AppGateway implements OnApplicationShutdown, OnApplicationBootstrap {
     private readonly startTime = new Date();
 
     @WebSocketServer()
     private readonly server: Server;
 
     constructor(
-        private readonly appRepo: AppRespository
+        private readonly appRepo: AppRespository,
+        private readonly gatwayHelper: GatewayHelperService
     ) {
         Logger.log('Gateway initalised', this.constructor.name)
+    }
+    onApplicationBootstrap() {
+        this.gatwayHelper.asObservable().subscribe((event) => {
+            const { eventName, data } = event;
+            this.publish(eventName, data);
+        })
     }
 
     onApplicationShutdown(signal?: string) {
@@ -43,15 +51,13 @@ export class AppGateway implements OnApplicationShutdown {
     updateService(@MessageBody() body: UpdateServiceDto) {
         return this.appRepo.updateService(body).then(() => {
             console.log('updated');
-            
+
             this.listServices();
         })
     }
 
     @SubscribeMessage('list_services')
     listServices() {
-        console.log('listing');
-        
         return this.appRepo.listServices();
     }
 

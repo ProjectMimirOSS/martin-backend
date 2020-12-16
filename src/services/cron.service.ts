@@ -1,14 +1,13 @@
-import { forwardRef, HttpService, Inject, Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
-import { CronExpression, SchedulerRegistry } from "@nestjs/schedule";
-import { CreateServiceDto } from "../interfaces/service.interface";
+import { HttpService, Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from "@nestjs/common";
+import { SchedulerRegistry } from "@nestjs/schedule";
 import { CronJob, CronTime } from 'cron';
 import { Service } from "../entities/service.entity";
-import { AppGateway } from "../app.gateway";
 import { take } from 'rxjs/operators';
 import { IEventType, IPongDto, IPongResponseItem, IServiceMessage } from "../interfaces/serviceResponse.interface";
 import { DowntimeModel } from "../models/downtime.model";
 import { ServiceModel } from "../models/service.model";
 import { WebHookService } from "./webhook.service";
+import { GatewayHelperService } from "./gatewayhelper.service";
 
 @Injectable()
 export class CronService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -16,11 +15,10 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
     constructor(
         private readonly scheduler: SchedulerRegistry,
         private readonly services: ServiceModel,
-        @Inject(forwardRef(() => AppGateway))
-        private readonly gateway: AppGateway,
         private readonly http: HttpService,
         private readonly downTime: DowntimeModel,
-        private readonly webHook: WebHookService
+        private readonly webHook: WebHookService,
+        private readonly gatewayHelper: GatewayHelperService
     ) { }
 
     private readonly serviceSubServiceMap = new Map<string, string[]>();
@@ -157,7 +155,6 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 }
 
                 event.subServices = new IPongDto();
-                const cron = this.scheduler.getCronJob(serviceId);
                 const subServices = [];
                 for (const iterator in pong_dto) {
 
@@ -178,12 +175,12 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 this.serviceSubServiceMap.set(serviceId, subServices);
                 this.serviceStatusMap.set(serviceId, event.status);
 
-                this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
+                this.gatewayHelper.publish('service_update', { ...event, serviceId, nextExecutionAt })
                 if (recentCritical || recentRecovery?.affected > 0 || recentlyDown.length > 0 || recentlyUp.length > 0)
                     this.webHook.notify(event);
 
 
-            }, async (err) => {
+            }, async () => {
                 const tat = Date.now() - startTime;
 
                 const event = new IServiceMessage<IPongDto>();
@@ -192,7 +189,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                 event.status = IEventType.CODE_JUDY;
                 this.serviceStatusMap.set(serviceId, event.status);
                 const nextExecutionAt = this.scheduler.getCronJob(serviceId)?.nextDate()?.toLocaleString();
-                this.gateway.publish('service_update', { ...event, serviceId, nextExecutionAt });
+                this.gatewayHelper.publish('service_update', { ...event, serviceId, nextExecutionAt });
                 const recentCritical = await this.downTime.recordDowntime(serviceId, '*');
                 if (recentCritical)
                     this.webHook.notify(event);
@@ -219,7 +216,7 @@ export class CronService implements OnApplicationBootstrap, OnApplicationShutdow
                     }
                     console.log('publishing');
 
-                    this.gateway.publish('services_list', list);
+                    this.gatewayHelper.publish('services_list', list);
                 })
                 currentPage++;
             }

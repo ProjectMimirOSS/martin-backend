@@ -1,3 +1,4 @@
+import { GatewayHelperService } from './services/gatewayhelper.service';
 import { HttpModule, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -22,6 +23,7 @@ import { WebHookService } from './services/webhook.service';
     ScheduleModule.forRoot(), HttpModule,
   ],
   controllers: [AppController],
-  providers: [AppService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
+  providers: [
+        GatewayHelperService, AppService, AppGateway, CronService, ServiceModel, AppRespository, DowntimeModel, WebHookService, WebHookModel],
 })
 export class AppModule { }

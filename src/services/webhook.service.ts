@@ -1,7 +1,6 @@
-import { forwardRef, HttpService, Inject, Injectable } from "@nestjs/common";
-import { AppGateway } from "../app.gateway";
+import { HttpService, Injectable } from "@nestjs/common";
 import { WebHook } from "../entities/webhook.entity";
-import { IEventType, IPongDto, IServiceMessage } from "../interfaces/serviceResponse.interface";
+import { IPongDto, IServiceMessage } from "../interfaces/serviceResponse.interface";
 import { CreateWebHookDto, UpdateWebHookDto } from "../interfaces/webhook.interface";
 import { WebHookModel } from "../models/webhook.model";
 
@@ -11,9 +10,7 @@ export class WebHookService {
 
     constructor(
         private readonly http: HttpService,
-        private readonly webHook: WebHookModel,
-        @Inject(forwardRef(() => AppGateway))
-        private readonly gateway: AppGateway,
+        private readonly webHook: WebHookModel
     ) { }
 
 

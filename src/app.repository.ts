@@ -1,12 +1,9 @@
-import { forwardRef, Inject, Injectable } from "@nestjs/common";
-import { AppGateway } from "./app.gateway";
+import { Injectable } from "@nestjs/common";
 import { CronService } from "./services/cron.service";
 import { CreateServiceDto, UpdateServiceDto } from "./interfaces/service.interface";
 import { Service } from "./entities/service.entity";
 import { CreateWebHookDto, UpdateWebHookDto } from "./interfaces/webhook.interface";
-import { WebHook } from "./entities/webhook.entity";
 import { ServiceModel } from "./models/service.model";
-import { WebHookModel } from "./models/webhook.model";
 import { WebHookService } from "./services/webhook.service";
 
 @Injectable()
